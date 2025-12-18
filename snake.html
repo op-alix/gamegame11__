@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Snake Game</title>
+<style>
+body{
+  background:#111;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+canvas{
+  background:black;
+  border:3px solid lime;
+  display:block;
+  margin:10px auto;
+}
+button, select{
+  padding:10px 15px;
+  margin:5px;
+  font-size:16px;
+}
+.controls button{width:70px;}
+#overlay{
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.9);
+  color:white;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+</style>
+</head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00ff00">
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+<body>
+
+<h1>🐍 Snake Game</h1>
+<h2 id="score">Score: 0 | High: 0</h2>
+
+<div id="overlay">
+  <h1>🐍 SNAKE</h1>
+  <label>Skin:</label>
+  <select id="skin">
+    <option value="lime">Green</option>
+    <option value="cyan">Blue</option>
+    <option value="yellow">Yellow</option>
+  </select>
+  <button onclick="startGame()">▶ START</button>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div>
+  <button onclick="pauseGame()">⏸ PAUSE</button>
+</div>
+
+<div class="controls">
+  <div><button onclick="setDir('UP')">⬆</button></div>
+  <div>
+    <button onclick="setDir('LEFT')">⬅</button>
+    <button onclick="setDir('RIGHT')">➡</button>
+  </div>
+  <div><button onclick="setDir('DOWN')">⬇</button></div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const box=20;
+
+let snake,food,dir,score,game,speed,skin;
+let high=localStorage.getItem("high")||0;
+
+document.getElementById("score").innerText=`Score: 0 | High: ${high}`;
+
+function startGame(){
+  document.getElementById("overlay").style.display="none";
+  skin=document.getElementById("skin").value;
+  snake=[{x:200,y:200}];
+  dir="";
+  score=0;
+  speed=140;
+  food=randomFood();
+  game=setInterval(draw,speed);
+}
+
+function pauseGame(){clearInterval(game);}
+
+document.addEventListener("keydown",e=>{
+  if(e.keyCode==37 && dir!="RIGHT")dir="LEFT";
+  if(e.keyCode==38 && dir!="DOWN")dir="UP";
+  if(e.keyCode==39 && dir!="LEFT")dir="RIGHT";
+  if(e.keyCode==40 && dir!="UP")dir="DOWN";
+});
+
+function setDir(d){
+  if(d=="LEFT"&&dir!="RIGHT")dir="LEFT";
+  if(d=="UP"&&dir!="DOWN")dir="UP";
+  if(d=="RIGHT"&&dir!="LEFT")dir="RIGHT";
+  if(d=="DOWN"&&dir!="UP")dir="DOWN";
+}
+
+function randomFood(){
+  return{
+    x:Math.floor(Math.random()*19)*box,
+    y:Math.floor(Math.random()*19)*box
+  };
+}
+
+function circle(x,y,r,c){
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=c;
+  ctx.fill();
+}
+
+function draw(){
+  ctx.fillStyle="black";
+  ctx.fillRect(0,0,400,400);
+
+  // walls
+  ctx.fillStyle="gray";
+  ctx.fillRect(0,0,400,10);
+  ctx.fillRect(0,390,400,10);
+  ctx.fillRect(0,0,10,400);
+  ctx.fillRect(390,0,10,400);
+
+  // snake
+  for(let i=0;i<snake.length;i++){
+    circle(snake[i].x+10,snake[i].y+10,8,i==0?skin:"green");
+  }
+
+  // food
+  circle(food.x+10,food.y+10,8,"red");
+
+  let x=snake[0].x,y=snake[0].y;
+  if(dir=="LEFT")x-=box;
+  if(dir=="UP")y-=box;
+  if(dir=="RIGHT")x+=box;
+  if(dir=="DOWN")y+=box;
+
+  if(x==food.x && y==food.y){
+    score++;
+    if(score>high){
+      high=score;
+      localStorage.setItem("high",high);
+    }
+    food=randomFood();
+    clearInterval(game);
+    speed=Math.max(60,speed-5);
+    game=setInterval(draw,speed);
+  }else{
+    snake.pop();
+  }
+
+  let head={x,y};
+
+  if(
+    x<10||y<10||x>=390||y>=390||
+    snake.some(s=>s.x==x&&s.y==y)
+  ){
+    clearInterval(game);
+    alert("GAME OVER 😵 Score: "+score);
+    location.reload();
+  }
+
+  snake.unshift(head);
+  document.getElementById("score").innerText=`Score: ${score} | High: ${high}`;
+}
+</script>
+
+</body>
+</html>
